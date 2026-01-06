@@ -50,6 +50,25 @@ if TYPE_CHECKING:
 
 logger = get_logger("pebbling.server.notifications.push_manager")
 
+
+def _serialize_for_json(obj: Any) -> Any:
+    """Recursively convert UUID objects to strings for JSON serialization.
+
+    Args:
+        obj: Object to serialize (dict, list, or primitive)
+
+    Returns:
+        Object with all UUIDs converted to strings
+    """
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: _serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_serialize_for_json(item) for item in obj]
+    else:
+        return obj
+
 PUSH_NOT_SUPPORTED_MESSAGE = (
     "Push notifications are not supported by this server configuration. Please use polling to check task status. "
     "See: GET /tasks/{id}"
@@ -294,7 +313,7 @@ class PushNotificationManager:
             "kind": "artifact-update",
             "task_id": str(task_id),
             "context_id": str(context_id),
-            "artifact": artifact,
+            "artifact": _serialize_for_json(artifact),
         }
 
     async def notify_artifact(

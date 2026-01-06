@@ -63,10 +63,13 @@ class MessageHandlers:
         # Submit task to storage
         task: Task = await self.storage.submit_task(context_id, message)
 
-        # Handle long-running task webhook persistence
+        # Handle long-running task webhook persistence.
+        # Accept both camelCase (JSON-RPC standard) and snake_case for flexibility.
         config = request["params"].get("configuration", {})
-        long_running = config.get("long_running", False)
-        push_notification_config = config.get("push_notification_config")
+        long_running = bool(config.get("long_running") or config.get("longRunning"))
+        push_notification_config = config.get("push_notification_config") or config.get(
+            "pushNotificationConfig"
+        )
 
         if long_running and push_notification_config and self.push_manager:
             # Persist webhook config for long-running tasks
@@ -84,7 +87,8 @@ class MessageHandlers:
         )
 
         # Add optional configuration parameters
-        if history_length := config.get("history_length"):
+        history_length = config.get("history_length") or config.get("historyLength")
+        if history_length:
             scheduler_params["history_length"] = history_length
 
         # Pass payment context from message metadata to worker if available
